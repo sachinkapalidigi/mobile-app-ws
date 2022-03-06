@@ -1,7 +1,9 @@
 package com.appsdeveloperblog.app.ws.service.impl;
 
 import com.appsdeveloperblog.app.ws.exceptions.UserServiceException;
+import com.appsdeveloperblog.app.ws.shared.dto.AddressDto;
 import com.appsdeveloperblog.app.ws.ui.model.response.ErrorMessages;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -41,10 +43,17 @@ public class UserServiceImpl implements UserService {
 	public UserDto createUser(UserDto user) {
 		
 		if(userRepository.findByEmail(user.getEmail()) != null) throw new RuntimeException("Record already exists");
-		
-		UserEntity userEntity = new UserEntity();
-		BeanUtils.copyProperties(user, userEntity);
-		
+
+		for(AddressDto ad: user.getAddresses()){
+			ad.setUserDetails(user);
+			ad.setAddressId(utils.generateAddressId(30));
+		}
+
+		// UserEntity userEntity = new UserEntity();
+		// BeanUtils.copyProperties(user, userEntity);
+		ModelMapper modelMapper = new ModelMapper();
+		UserEntity userEntity = modelMapper.map(user, UserEntity.class);
+
 		String publicUserId = utils.generateUserId(30);
 		userEntity.setEncryptedPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		userEntity.setUserId(publicUserId);
@@ -53,8 +62,9 @@ public class UserServiceImpl implements UserService {
 		UserEntity storedUserDetails = userRepository.save(userEntity);
 		
 		UserDto returnValue = new UserDto();
-		BeanUtils.copyProperties(storedUserDetails, returnValue);
-		
+		// BeanUtils.copyProperties(storedUserDetails, returnValue);
+		returnValue = modelMapper.map(storedUserDetails, UserDto.class);
+
 		return returnValue;
 	}
 
